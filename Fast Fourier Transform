@@ -1,137 +1,62 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-import matplotlib.pyplot as plotter
+plt.rcParams['figure.figsize'] = [16,12]
+plt.rcParams.update({'font.size':18})
 
- 
+# Create a simple signal with two frequencies
 
-# How many time points are needed i,e., Sampling Frequency
+dt = 0.001
+t = np.arange(0,1,dt)
+f = np.sin(2*np.pi*50*t) + np.sin(2*np.pi*120*t)
+f_clean = f
+f = f + 2.5*np.random.randn(len(t))
 
-samplingFrequency   = 100
 
- 
+# Compute the fft
 
-# At what intervals time points are sampled
+n = len(t)
+fhat = np.fft.fft(f,n)                          # Compute the fft (the fhat vector is such that the magnitude tells us how much important that frequency is and the phase tells us if its more sine or cosine)
+PSD = fhat * np.conj(fhat) / n                  # Power spectrum density (Power per frequency)
+freq = (1/(dt*n)) * np.arange(n)                # Create x-axis of frequencies
+L = np.arange(1,np.floor(n/2), dtype='int')     # Only plot the first half of 
 
-samplingInterval       = 1 / samplingFrequency
+'''
+To filter the data we will keep the 
+Fourier Coefficient which is larger than a 
+threshold and make all other go to zero
+'''
 
- 
+# Use the PSD to filter out noise
 
-# Begin time period of the signals
+indices = PSD > 100         # Find all frequencies with large power
+PSDclean = PSD * indices    # Zero out all others
+fhat = indices * fhat       # Zero out small Fourier coefficients in Y
+ffilt = np.fft.ifft(fhat)   # Inverse FFT for filtered time signal
 
-beginTime           = 0
 
- 
 
-# End time period of the signals
+# Plotting
 
-endTime             = 10
+fig,axs = plt.subplots(3,1)
 
- 
+plt.sca(axs[0])
+plt.plot(t,f,color='c', LineWidth=1.5,label='Noisy')
+plt.plot(t,f_clean,color='k', LineWidth=2,label='Clean')
+plt.xlim(t[0],t[-1])
+plt.legend()
 
-# Frequency of the signals
 
-signal1Frequency     = np.random.randint(1,10,size=1)
+plt.sca(axs[1])
+plt.plot(t,ffilt,color='k', LineWidth=2,label='Filtered')
+plt.xlim(t[0],t[-1])
+plt.legend()
 
-signal2Frequency     = np.random.randint(1,10,size=1)
 
- 
+plt.sca(axs[2])
+plt.plot(freq[L],PSD[L],color='c', LineWidth=2,label='Noisy')
+# plt.plot(freq[L],PSDclean[L],color='k', LineWidth=1.5,label='Filtered')
+plt.xlim(freq[L[0]],freq[L[-1]])
+plt.legend()
 
-# Time points
-
-time        = np.arange(beginTime, endTime, samplingInterval)
-
- 
-
-# Create two sine waves
-
-amplitude1 = np.sin(2*np.pi*signal1Frequency*time)
-
-amplitude2 = np.sin(2*np.pi*signal2Frequency*time)
-
- 
-
-# Create subplot
-
-figure, axis = plotter.subplots(4, 1)
-
-plotter.subplots_adjust(hspace=1)
-
- 
-
-# Time domain representation for sine wave 1
-
-axis[0].set_title('Sine wave with a frequency of 4 Hz')
-
-axis[0].plot(time, amplitude1)
-
-axis[0].set_xlabel('Time')
-
-axis[0].set_ylabel('Amplitude')
-
- 
-
- 
-
-# Time domain representation for sine wave 2
-
-axis[1].set_title('Sine wave with a frequency of 7 Hz')
-
-axis[1].plot(time, amplitude2)
-
-axis[1].set_xlabel('Time')
-
-axis[1].set_ylabel('Amplitude')
-
- 
-
-# Add the sine waves
-
-amplitude = amplitude1 + amplitude2
-
- 
-
-# Time domain representation of the resultant sine wave
-
-axis[2].set_title('Sine wave with multiple frequencies')
-
-axis[2].plot(time, amplitude)
-
-axis[2].set_xlabel('Time')
-
-axis[2].set_ylabel('Amplitude')
-
- 
-
-# Frequency domain representation
-
-fourierTransform = np.fft.fft(amplitude)/len(amplitude)           # Normalize amplitude
-
-fourierTransform = fourierTransform[range(int(len(amplitude)/2))] # Exclude sampling frequency
-
- 
-
-tpCount     = len(amplitude)
-
-values      = np.arange(int(tpCount/2))
-
-timePeriod  = tpCount/samplingFrequency
-
-frequencies = values/timePeriod
-
- 
-
-# Frequency domain representation
-
-axis[3].set_title('Fourier transform depicting the frequency components')
-
- 
-
-axis[3].plot(frequencies, abs(fourierTransform))
-
-axis[3].set_xlabel('Frequency')
-
-axis[3].set_ylabel('Amplitude')
-
-print(signal1Frequency,signal2Frequency)
-
-plotter.show()
+plt.show()
